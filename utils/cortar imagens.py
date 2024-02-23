@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 30 16:33:18 2023
-
-@author: isi-er
-"""
-
 from PIL import Image
 import os
 
@@ -15,17 +7,17 @@ input_directory = "/home/isi-er/Documentos/DATASET_2/GOOGLE_EARTH"
 # Diretório de saída para imagens .png
 output_directory = "/home/isi-er/Documentos/DATASET_2/crops/mask"
 
-cont=774
+cont = 774
 
 # Lista todos os arquivos no diretório de entrada
 file_list = os.listdir(input_directory)
 file_list.sort()
 # Loop através dos arquivos e converta .tif em .png
 for filename in file_list:
-    if filename.endswith(".jpg"): #modificar para o tipo da imagem
+    if filename.endswith(".jpg"):  # modificar para o tipo da imagem
         # Abra a imagem .tif
-        imagem_original = Image.open(os.path.join(input_directory, filename)) 
-        #imagem_original = imagem_original.convert('L') # USAR SOMENTE PARA AS MÁSCARAS
+        imagem_original = Image.open(os.path.join(input_directory, filename))
+        # imagem_original = imagem_original.convert('L') # USAR SOMENTE PARA AS MÁSCARAS
         # Obtenha as dimensões da imagem original
         width, height = imagem_original.size
 
@@ -43,10 +35,11 @@ for filename in file_list:
 
             # Salve as 16 imagens menores
             for i, imagem_menor in enumerate(imagens_menores):
-                
-                imagem_menor.save(f"/home/isi-er/Documentos/DATASET_PNG/images/{i+cont}.png")
-                
-    #cont=cont+16
+
+                imagem_menor.save(
+                    f"/home/isi-er/Documentos/DATASET_PNG/images/{i+cont}.png"
+                )
+
+    # cont=cont+16
 
 print("Imagens de 400x400 criadas e salvas com sucesso.")
-
