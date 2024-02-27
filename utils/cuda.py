@@ -7,6 +7,7 @@ def cuda():
     if cuda_available:
         print("CUDA is available. Utilize GPUs for computation")
         device = torch.device("cuda")
+        return device, cuda_available
     else:
         print("CUDA is not available. Utilize CPUs for computation.")
         device = torch.device("cpu")

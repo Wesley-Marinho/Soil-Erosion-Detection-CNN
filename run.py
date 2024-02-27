@@ -1,4 +1,4 @@
-#%%
+# %%
 # Use Google Colab
 use_google_colab = False
 # Process the training dataset
@@ -28,23 +28,31 @@ from networks.LinkNet34 import *
 from networks.UNet import *
 
 
-path_training = "../training/"
-path_testing = "../test/"
-path_data = "../data/"
-path_model = "../models/"
+path_training = "./training/"
+path_testing = "./test/"
+path_data = "./data/"
+path_model = "./models/"
 
-#%%
-device, cuda_available = cuda()
+# %%
+cuda_available = torch.cuda.is_available()
+if cuda_available:
+    print("CUDA is available. Utilize GPUs for computation")
+    device = torch.device("cuda")
+else:
+    print("CUDA is not available. Utilize CPUs for computation.")
+    device = torch.device("cpu")
+
+# device, cuda_available = cuda()
 gpu_info = gpuInfo()
 
-model = DLinkNet34()
+model = DLinkNet101()
 
 if cuda_available:
     # Move the model to GPU
     model.cuda()
 print(model)
 
-#%%
+# %%
 # The resolution of resized training images and the corresponding masks
 training_resize = 512
 # The number of resized training pairs used for data augmentation
@@ -90,35 +98,35 @@ if model_training:
     print(f"images_validation.shape = {images_validation.shape}")
     print(f"labels_validation.shape = {labels_validation.shape}")
 
-#%%
-    train(
-        model,
-        images_augmented,
-        labels_augmented,
-        images_validation,
-        labels_validation,
-        loss_func=BCEIoULoss(),  # BCEIoULoss(), DiceBCELoss(), nn.BCELoss()
-        batch_size=4,
-        learning_rate=2e-4,
-        epochs=40,
-        model_validation=model_validation,
-        cuda_available=cuda_available,
-        path_model=path_model,
-    )
+    # %%
+train(
+    model,
+    images_augmented,
+    labels_augmented,
+    images_validation,
+    labels_validation,
+    loss_func=BCEIoULoss(),  # BCEIoULoss(), DiceBCELoss(), nn.BCELoss()
+    batch_size=4,
+    learning_rate=2e-4,
+    epochs=40,
+    model_validation=model_validation,
+    cuda_available=cuda_available,
+    path_model=path_model,
+)
 
-#%%
+# %%
 if model_loading:
     # Load the model from your Google Drive or local file system
     checkpoint = torch.load(path_model + "model.model")
     model.load_state_dict(checkpoint["model_state_dict"])
 
-#%%
+# %%
 submission = submission_creating(
     model, path_testing, training_resize, testing_resize, cuda_available
 )
 
-#%%
+# %%
 np.savetxt("submit.csv", submission, delimiter=",", fmt="%s")
 
-#%%
+# %%
 test(path_testing, 748, model, cuda_available)
