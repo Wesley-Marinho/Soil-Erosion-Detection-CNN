@@ -35,7 +35,7 @@ batch_size = 4,
 learning_rate = 2e-4,
 epochs = 20
 ------------------------------------------
-
+E
 DLinkNet34
 Acurácia de validação: 0.9849797734192439
 F1-score de validação: 0.7549097545687457
@@ -49,3 +49,6 @@ IoU de validação: 0.981290062640866
 ------------------------------------------
 
 DLinkNet101
+Acurácia de validação: 0.9892273655959538
+F1-score de validação: 0.7950918281954404
+IoU de validação: 0.9808347584103351
