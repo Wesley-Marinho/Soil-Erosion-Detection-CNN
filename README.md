@@ -52,3 +52,9 @@ DLinkNet101
 Acurácia de validação: 0.9892273655959538
 F1-score de validação: 0.7950918281954404
 IoU de validação: 0.9808347584103351
+------------------------------------------
+
+LinkNet34
+Acurácia de validação: 0.9908931008407048
+F1-score de validação: 0.8178194215274992
+IoU de validação: 0.9833185658484364
