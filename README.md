@@ -58,3 +58,9 @@ LinkNet34
 Acurácia de validação: 0.9908931008407048
 F1-score de validação: 0.8178194215274992
 IoU de validação: 0.9833185658484364
+------------------------------------------
+
+LinkNetB7
+Acurácia de validação: 0.9931257852486202
+F1-score de validação: 0.8666407056205608
+IoU de validação: 0.9872543045564425
