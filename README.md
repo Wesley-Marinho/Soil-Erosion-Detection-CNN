@@ -64,3 +64,9 @@ LinkNetB7
 Acurácia de validação: 0.9931257852486202
 F1-score de validação: 0.8666407056205608
 IoU de validação: 0.9872543045564425
+------------------------------------------
+
+Unet
+Acurácia de validação: 0.9846361398696899
+F1-score de validação: 0.7078761812788931
+IoU de validação: 0.9735208197171009
