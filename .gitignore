@@ -1,5 +1,4 @@
 # Ignora todos os arquivos PNG
-*.png
 
 # Ignora outros arquivos
 *.txt
