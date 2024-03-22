@@ -1,5 +1,5 @@
 # Ignora todos os arquivos PNG
-
+training/
 # Ignora outros arquivos
 *.txt
 *.log
