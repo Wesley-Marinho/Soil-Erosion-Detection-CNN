@@ -4,11 +4,11 @@ use_google_colab = False
 # Process the training dataset
 training_data_processing = False
 # Train the model
-model_training = True
+model_training = False
 # Validation the model
 model_validation = True
 # Load the model from your Google Drive or local file system
-model_loading = False
+model_loading = True
 
 import numpy as np
 import torch
@@ -33,7 +33,6 @@ path_testing = "./test/"
 path_data = "./data/"
 path_model = "./models/"
 
-# %%
 cuda_available = torch.cuda.is_available()
 if cuda_available:
     print("CUDA is available. Utilize GPUs for computation")
@@ -43,15 +42,15 @@ else:
     device = torch.device("cpu")
 
 # device, cuda_available = cuda()
+# %%
 gpu_info = gpuInfo()
 
-model = DLinkNet101()
+model = UNet()
 
 if cuda_available:
     # Move the model to GPU
     model.cuda()
 print(model)
-
 # %%
 # The resolution of resized training images and the corresponding masks
 training_resize = 512
@@ -61,7 +60,6 @@ training_number = 367
 testing_resize = int(608 * training_resize / 400)
 if testing_resize % 2 == 1:
     testing_resize += 1
-
 
 if training_data_processing:
     # Load and generate the resized training dataset and validation dataset
@@ -108,7 +106,7 @@ train(
     loss_func=BCEIoULoss(),  # BCEIoULoss(), DiceBCELoss(), nn.BCELoss()
     batch_size=4,
     learning_rate=2e-4,
-    epochs=40,
+    epochs=100,
     model_validation=model_validation,
     cuda_available=cuda_available,
     path_model=path_model,
@@ -117,7 +115,7 @@ train(
 # %%
 if model_loading:
     # Load the model from your Google Drive or local file system
-    checkpoint = torch.load(path_model + "model.model")
+    checkpoint = torch.load(path_model + "modelUNet.model")
     model.load_state_dict(checkpoint["model_state_dict"])
 
 # %%
@@ -130,3 +128,5 @@ np.savetxt("submit.csv", submission, delimiter=",", fmt="%s")
 
 # %%
 test(path_testing, 748, model, cuda_available)
+
+# %%

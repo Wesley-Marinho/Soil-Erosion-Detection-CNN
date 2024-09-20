@@ -35,7 +35,6 @@ batch_size = 4,
 learning_rate = 2e-4,
 epochs = 20
 ------------------------------------------
-E
 DLinkNet34
 Acurácia de validação: 0.9849797734192439
 F1-score de validação: 0.7549097545687457
@@ -70,3 +69,21 @@ Unet
 Acurácia de validação: 0.9846361398696899
 F1-score de validação: 0.7078761812788931
 IoU de validação: 0.9735208197171009
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Configuração dos modelos
+batch_size = 4,
+learning_rate = 2e-4,
+epochs = 20
+------------------------------------------
+LinkNet34
+Acurácia de validação: 0.9932426347051349
+F1-score de validação: 0.8688483870098754
+IoU de validação: 0.9874635063616748
+------------------------------------------
+Unet
+Acurácia de validação: 0.9904441831793104
+F1-score de validação: 0.811689134802544
+IoU de validação: 0.9826613873004812
+------------------------------------------
