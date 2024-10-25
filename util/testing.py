@@ -6,6 +6,7 @@ from tqdm import tqdm
 import cv2
 import matplotlib.pyplot as plt
 
+
 def testing_patch_extracting(input, trar=384, tesr=584):
     """
     testing_patch_extracting - Divide each resized testing image into four patches, one at each corner.
@@ -20,11 +21,17 @@ def testing_patch_extracting(input, trar=384, tesr=584):
         raise AssertionError("training_resize is too small.")
 
     input_patches = np.empty(shape=(4, input.shape[2], trar, trar))
-    input_patches[0] = np.transpose(input[0:0+trar, 0:0+trar, :], (2, 0, 1))
-    input_patches[1] = np.transpose(input[0:0+trar, tesr-trar:tesr, :], (2, 0, 1))
-    input_patches[2] = np.transpose(input[tesr-trar:tesr, 0:0+trar, :], (2, 0, 1))
-    input_patches[3] = np.transpose(input[tesr-trar:tesr, tesr-trar:tesr, :], (2, 0, 1))
-    
+    input_patches[0] = np.transpose(input[0 : 0 + trar, 0 : 0 + trar, :], (2, 0, 1))
+    input_patches[1] = np.transpose(
+        input[0 : 0 + trar, tesr - trar : tesr, :], (2, 0, 1)
+    )
+    input_patches[2] = np.transpose(
+        input[tesr - trar : tesr, 0 : 0 + trar, :], (2, 0, 1)
+    )
+    input_patches[3] = np.transpose(
+        input[tesr - trar : tesr, tesr - trar : tesr, :], (2, 0, 1)
+    )
+
     return input_patches
 
 
@@ -43,11 +50,14 @@ def testing_patch_assembling(output_patches, trar=384, tesr=584):
 
     output = np.empty(shape=(output_patches.shape[1], tesr, tesr))
     output[:, 0:eL, 0:eL] = output_patches[0, :, 0:eL, 0:eL]
-    output[:, 0:eL, tesr-eL:tesr] = output_patches[1, :, 0:eL, trar-eL:trar]
-    output[:, tesr-eL:tesr, 0:eL] = output_patches[2, :, trar-eL:trar, 0:eL]
-    output[:, tesr-eL:tesr, tesr-eL:tesr] = output_patches[3, :, trar-eL:trar, trar-eL:trar]
-    
+    output[:, 0:eL, tesr - eL : tesr] = output_patches[1, :, 0:eL, trar - eL : trar]
+    output[:, tesr - eL : tesr, 0:eL] = output_patches[2, :, trar - eL : trar, 0:eL]
+    output[:, tesr - eL : tesr, tesr - eL : tesr] = output_patches[
+        3, :, trar - eL : trar, trar - eL : trar
+    ]
+
     return output
+
 
 def mask_to_submission(output, index):
     """
@@ -62,14 +72,16 @@ def mask_to_submission(output, index):
     for i in range(0, output.shape[0], 16):
         for j in range(0, output.shape[1], 16):
             prediction = 0
-            patch = output[j:j+16, i:i+16]
+            patch = output[j : j + 16, i : i + 16]
             if np.mean(patch > 0.2) > 0.25:
                 prediction = 1
             mask_submission.append(["{:03d}_{}_{}".format(index, i, j), prediction])
     return mask_submission
 
 
-def submission_creating(model, path_testing, training_resize=384, testing_resize=584, cuda_available=True):
+def submission_creating(
+    model, path_testing, training_resize=384, testing_resize=584, cuda_available=True
+):
     """
     submission_creating - Load and generate the resized training dataset and validation dataset.
     Args:
@@ -86,7 +98,12 @@ def submission_creating(model, path_testing, training_resize=384, testing_resize
         model.eval()
         # Load a testing image
 
-        input = np.array(Image.open(f'{path_testing}images/({index}).png')).astype('float32') / 255
+        input = (
+            np.array(Image.open(f"{path_testing}images/({index}).png")).astype(
+                "float32"
+            )
+            / 255
+        )
 
         # Resize the testing image
         input = resize(input, (testing_resize, testing_resize))
@@ -100,9 +117,11 @@ def submission_creating(model, path_testing, training_resize=384, testing_resize
             output_patches = model(input_patches.cuda()).detach().cpu().numpy()
         else:
             output_patches = model(input_patches).detach().numpy()
-        
+
         # Merge the four masks into one resized mask
-        output = testing_patch_assembling(output_patches, training_resize, testing_resize)[0, :, :]
+        output = testing_patch_assembling(
+            output_patches, training_resize, testing_resize
+        )[0, :, :]
 
         # Restore the resized mask to the original resolution
         output = resize(output, (608, 608))
@@ -113,9 +132,10 @@ def submission_creating(model, path_testing, training_resize=384, testing_resize
         submit_outputs.append(submit_output)
 
     submission = np.concatenate(submit_outputs, axis=0)
-    submission = np.concatenate(([['id', 'prediction']], submission), axis=0)
+    submission = np.concatenate(([["id", "prediction"]], submission), axis=0)
 
     return submission
+
 
 def test(path_testing, index, model, cuda_available):
 
@@ -182,22 +202,28 @@ def test(path_testing, index, model, cuda_available):
     opacity = 0.002
     # Crie uma máscara usando a imagem binária
     mask = np.zeros_like(input, dtype=input.dtype)
-    
-    mask[binary == 1] = (0,255,0)  # Pixels na imagem binária que são 1 ficarão totalmente brancos na máscara
+
+    mask[binary == 1] = (
+        0,
+        255,
+        0,
+    )  # Pixels na imagem binária que são 1 ficarão totalmente brancos na máscara
 
     # Aplique a mistura alfa entre a imagem de entrada e a máscara
     highlighted_image = cv2.addWeighted(input, 1 - opacity, mask, opacity, 0)
-    
-    input_mask = np.array(Image.open(f'{path_testing}/groundtruth/({index}).png')).astype('float32') / 255
-    input_mask = resize(input_mask, (testing_resize, testing_resize))
 
+    input_mask = (
+        np.array(Image.open(f"{path_testing}/groundtruth/({index}).png")).astype(
+            "float32"
+        )
+        / 255
+    )
+    input_mask = resize(input_mask, (testing_resize, testing_resize))
 
     fig, ax = plt.subplots(1, 4, figsize=(12, 6))
     ax[0].imshow(input_mask)
     ax[0].set_title("Groundtruth")
     ax[1].imshow(output)
     ax[1].set_title("Prediction Result")
-    ax[2].imshow(normalized_image)
-    ax[2].set_title("Binarized Image")
     ax[3].imshow(highlighted_image)
     ax[3].set_title("Segmented Image")
