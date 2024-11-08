@@ -202,7 +202,7 @@ def train(
                 "optimizer_state_dict": optimizer.state_dict(),
                 "loss": loss_func,
             },
-            path_model + "model.model",
+            path_model,
         )
 
     # Plot learning curves
