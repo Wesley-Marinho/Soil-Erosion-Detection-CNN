@@ -31,7 +31,7 @@ from networks.UNet import *
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/LinkNet34.model"
+path_model = "./models/UNet.model"
 
 cuda_available = torch.cuda.is_available()
 if cuda_available:
@@ -43,13 +43,13 @@ else:
 
 gpu_info = gpuInfo()
 
-model = LinkNet34()
+model = UNet()
 
 if cuda_available:
     model.cuda()
 
 print(model)
-# %%
+
 # The resolution of resized training images and the corresponding masks
 training_resize = 512
 # The number of resized training pairs used for data augmentation
@@ -103,27 +103,20 @@ if model_training:
         images_validation,
         labels_validation,
         loss_func=BCEIoULoss(),
-        batch_size=4,
+        batch_size=2,
         learning_rate=2e-4,
-        epochs=20,
+        epochs=100,
         model_validation=model_validation,
         cuda_available=cuda_available,
         path_model=path_model,
+        patience=5,
     )
 
 if model_loading:
     # Load the model from your Google Drive or local file system
     checkpoint = torch.load(path_model)
     model.load_state_dict(checkpoint["model_state_dict"])
-# %%
-submission = submission_creating(
-    model, path_testing, training_resize, testing_resize, cuda_available
-)
 
-# %%
-np.savetxt("submit.csv", submission, delimiter=",", fmt="%s")
-
-# %%
 for aux in range(747, 753):
     test(path_testing, aux, model, cuda_available)
 

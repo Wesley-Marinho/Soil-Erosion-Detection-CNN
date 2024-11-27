@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, f1_score, jaccard_score
+from sklearn.metrics import accuracy_score, f1_score, jaccard_score, recall_score
 
 
 def train(
@@ -18,6 +18,7 @@ def train(
     model_validation,
     cuda_available,
     path_model,
+    patience,
 ):
     """
     train - Train the instance of the neural network.
@@ -59,15 +60,27 @@ def train(
     train_accuracy_history = []
     val_loss_history = []
     val_accuracy_history = []
+
     f1_score_history = []
     f1_score_history_training = []
     f1_epoch_history_training = []
     f1_epoch_history_validation = []
+
     iou_score_history = []
     iou_epoch_history_training = []
     iou_score_history_training = []
     iou_epoch_history_validation = []
+
     acc_score_history = []
+
+    recall_history_training = []
+    recall_epoch_history_training = []
+    recall_epoch_history_validation = []
+    recall_history_validation = []
+
+    best_val_loss = float("inf")
+    patience_counter = 0
+
     # Loop over epochs
     for epoch in tqdm(range(epochs)):
         # Training
@@ -111,14 +124,21 @@ def train(
                 predicted.cpu().flatten(),
                 average="weighted",
             )
+            recall = recall_score(
+                labels.cpu().flatten().int(),
+                predicted.cpu().flatten(),
+                average="binary",
+            )
             # Use 'weighted' para calcular o IOU
             f1_score_history_training.append(f1_train)
             iou_score_history_training.append(iou_train)
+            recall_history_training.append(recall)
 
             if index % 20 == 0:
                 loss_item = loss.item()
                 print(f"→ Running_loss for Batch {index + 1}: {loss_item}")
                 print(f"→ ACC for Batch {index + 1}: {accuracy}")
+                print(f"→ Recall for Batch {index + 1}: {recall}")
 
         accuracy_training_final = accuracy_training / cont
         loss_training_final = loss_training / cont
@@ -133,6 +153,9 @@ def train(
         # Append epoch training loss and accuracy to the history lists
         train_loss_history.append(loss_training.item() / cont)
         train_accuracy_history.append(accuracy_training.item() / cont)
+        recall_epoch_history_training.append(
+            sum(recall_history_training) / len(recall_history_training)
+        )
 
         if model_validation and len(images_validation) > 0:
             # Validation
@@ -172,10 +195,17 @@ def train(
                         predicted.cpu().flatten(),
                         average="weighted",
                     )
+                    recall = recall_score(
+                        labels.cpu().flatten().int(),
+                        predicted.cpu().flatten(),
+                        average="binary",
+                    )
+
                     # Use 'weighted' para calcular o IOU
                     f1_score_history.append(f1)
                     iou_score_history.append(iou)
                     acc_score_history.append(ACC)
+                    recall_history_validation.append(recall)
             # accuracy_validation_final=accuracy_validation/cont1
             loss_validation_final = loss_validation / cont1
             print(
@@ -190,20 +220,41 @@ def train(
         iou_epoch_history_validation.append(
             sum(iou_score_history) / len(iou_score_history)
         )
-        print("Acurácia de validação:", sum(acc_score_history) / len(acc_score_history))
-        print("F1-score de validação:", sum(f1_score_history) / len(f1_score_history))
-        print("IoU de validação:", sum(iou_score_history) / len(iou_score_history))
+        recall_epoch_history_validation.append(
+            sum(recall_history_validation) / len(recall_history_validation)
+        )
+
+        print(
+            "Acurácia de validação: ", sum(acc_score_history) / len(acc_score_history)
+        )
+        print("F1-score de validação: ", sum(f1_score_history) / len(f1_score_history))
+        print("IoU de validação: ", sum(iou_score_history) / len(iou_score_history))
+        print(
+            "Recall de validação: ",
+            sum(recall_history_validation) / len(recall_history_validation),
+        )
         scheduler.step()
 
-        torch.save(
-            {
-                "epoch": epoch,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "loss": loss_func,
-            },
-            path_model,
-        )
+        # Early stopping
+        if val_loss_history[-1] < best_val_loss:
+            best_val_loss = val_loss_history[-1]
+            patience_counter = 0
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": loss_func,
+                },
+                path_model,
+            )
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print("Early stopping triggered")
+                break
+
+        scheduler.step()
 
     # Plot learning curves
     plt.figure(figsize=(12, 6))
@@ -243,6 +294,7 @@ def train(
     plt.legend()
     plt.grid()
 
+    plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 2)
     plt.plot(
         iou_epoch_history_validation,
@@ -253,6 +305,24 @@ def train(
     plt.plot(
         iou_epoch_history_training,
         label="Training IOU Score",
+        linestyle="--",
+        marker="o",
+    )
+    plt.xlabel("Epoch")
+    plt.ylabel("Score")
+    plt.legend()
+    plt.grid()
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(
+        recall_epoch_history_validation,
+        label="Validation Recall",
+        linestyle="--",
+        marker="o",
+    )
+    plt.plot(
+        recall_epoch_history_training,
+        label="Training Recall",
         linestyle="--",
         marker="o",
     )
