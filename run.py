@@ -1,15 +1,4 @@
 # %%
-# Use Google Colab
-use_google_colab = False
-# Process the training dataset
-training_data_processing = False
-# Train the model
-model_training = True
-# Validation the model
-model_validation = True
-# Load the model from your Google Drive or local file system
-model_loading = False
-
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
@@ -19,7 +8,6 @@ from util.data_augmentation import training_data_loading, training_data_augmenta
 from util.loss import BCEIoULoss
 from util.training import train
 from util.testing import submission_creating, test
-
 from networks.LinkNetB7 import *
 from networks.DLinkNet34 import *
 from networks.DLinkNet50 import *
@@ -27,75 +15,68 @@ from networks.DLinkNet101 import *
 from networks.LinkNet34 import *
 from networks.UNet import *
 
+use_google_colab = False
+training_data_processing = False
+model_training = True
+model_validation = True
+model_loading = False
+
+batch_size = 3
 
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
 path_model = "./models/UNet.model"
 
-batch_size = 2
-
 cuda_available = torch.cuda.is_available()
-if cuda_available:
-    print("CUDA is available. Utilize GPUs for computation")
-    device = torch.device("cuda")
-else:
-    print("CUDA is not available. Utilize CPUs for computation.")
-    device = torch.device("cpu")
+device = torch.device("cuda" if cuda_available else "cpu")
 
 gpu_info = gpuInfo()
 
 model = UNet()
-
 if cuda_available:
     model.cuda()
 
 print(model)
 # %%
-# The resolution of resized training images and the corresponding masks
+
 training_resize = 512
-# The number of resized training pairs used for data augmentation
 training_number = 367
-# The resolution of resized testing images
 testing_resize = int(608 * training_resize / 400)
 if testing_resize % 2 == 1:
     testing_resize += 1
 
 if training_data_processing:
-    # Load and generate the resized training dataset and validation dataset
     images_training, labels_training, images_validation, labels_validation = (
         training_data_loading(path_training, training_resize, training_number)
     )
-    # Generate the augmented training dataset
-    rotations = [0, 45, 90, 135]  # the rotation angle
 
-    flips = ["original", np.flipud, np.fliplr]  # 'original', np.flipud, np.fliplr
-
+    rotations = [0, 45, 90, 135]
+    flips = ["original", np.flipud, np.fliplr]
     shifts = [(-16, 16)]
 
     images_augmented, labels_augmented = training_data_augmentation(
         images_training, labels_training, rotations, flips, shifts, training_resize
     )
-    # Save the augmented training dataset and resized validation dataset
-    # to your Google Drive or local file system
+
     np.save(f"{path_data}images_training", images_augmented)
     np.save(f"{path_data}labels_training", labels_augmented)
     np.save(f"{path_data}images_validation", images_validation)
     np.save(f"{path_data}labels_validation", labels_validation)
+    print("\n Fim do Processamento")
+
 # %%
+
 if not model_loading:
-    # Load the augmented training dataset and resized validation dataset
-    # from your Google Drive or local file system
     images_augmented = np.load(f"{path_data}images_training.npy")
     labels_augmented = np.load(f"{path_data}labels_training.npy")
 
-    # Converter diretamente para tensores
     images_augmented = torch.Tensor(images_augmented)
     labels_augmented = torch.Tensor(labels_augmented)
 
-    # Criar o conjunto de dados e o DataLoader
     training_set = TensorDataset(images_augmented, labels_augmented)
     del images_augmented, labels_augmented
+
     training_generator = DataLoader(training_set, batch_size=batch_size, shuffle=True)
     del training_set
 
@@ -105,22 +86,15 @@ if not model_loading:
         images_validation = torch.Tensor(images_validation)
         labels_validation = torch.Tensor(labels_validation)
 
-        # Criar o conjunto de dados e o DataLoader
         validation_set = TensorDataset(images_validation, labels_validation)
         del images_validation, labels_validation
+
         validation_generator = DataLoader(
             validation_set, batch_size=batch_size, shuffle=True
         )
         del validation_set
 
-print("\n Fim do Carregamento")
-
-# if model_training:
-# print(f"\nimages_training.shape = {training_generator.shape}")
-# print(f"labels_training.shape = {labels_augmented.shape}")
-# print(f"images_validation.shape = {validation_generator.shape}")
-# print(f"labels_validation.shape = {labels_validation.shape}")
-
+    print("\n Fim do Carregamento")
 # %%
 if model_training:
     train(
@@ -137,7 +111,6 @@ if model_training:
     )
 
 if model_loading:
-    # Load the model from your Google Drive or local file system
     checkpoint = torch.load(path_model)
     model.load_state_dict(checkpoint["model_state_dict"])
 
