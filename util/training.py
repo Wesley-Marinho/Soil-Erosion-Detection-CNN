@@ -126,7 +126,7 @@ def train(
             sum(recall_history_training) / len(recall_history_training)
         )
 
-        if model_validation and len(images_validation) > 0:
+        if model_validation:
             # Validation
             print(f"--------Validation for Epoch {epoch + 1} starting:--------")
             model.eval()
