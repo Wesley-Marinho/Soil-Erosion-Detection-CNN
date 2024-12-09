@@ -7,12 +7,9 @@ from sklearn.metrics import accuracy_score, f1_score, jaccard_score, recall_scor
 
 def train(
     model,
-    images_training,
-    labels_training,
-    images_validation,
-    labels_validation,
+    training_generator,
+    validation_generator,
     loss_func,
-    batch_size,
     learning_rate,
     epochs,
     model_validation,
@@ -20,34 +17,6 @@ def train(
     path_model,
     patience,
 ):
-    """
-    train - Train the instance of the neural network.
-    Args:
-        model (torch): the instance of the neural network
-        images_training, labels_training (numpy): the augmented training dataset
-        images_validation, labels_validation (numpy): the resized validation dataset
-        loss_func (class): the loss function
-        batch_size (int): the number of samples per batch to load (default: 8)
-        learning_rate (float): the learning rate (default: 1e-3)
-        epochs (int): the learning epochs (default: 80)
-        if_validation (bool): the flag indicating whether or not to implement validation (default: False)
-        cuda_available (bool): the flag indicating whether CUDA is available (default: True)
-    """
-    # Use torch.utils.data to create a training_generator
-    images_training = torch.Tensor(images_training)
-    labels_training = torch.Tensor(labels_training)
-    training_set = TensorDataset(images_training, labels_training)
-    training_generator = DataLoader(training_set, batch_size=batch_size, shuffle=True)
-
-    # Use torch.utils.data to create a validation_generator
-    if model_validation and len(images_validation) > 0:
-        images_validation = torch.Tensor(images_validation)
-        labels_validation = torch.Tensor(labels_validation)
-        validation_set = TensorDataset(images_validation, labels_validation)
-        validation_generator = DataLoader(
-            validation_set, batch_size=batch_size, shuffle=True
-        )
-
     # Implement Adam algorithm
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     # Decay the learning rate by gamma every step_size epochs.

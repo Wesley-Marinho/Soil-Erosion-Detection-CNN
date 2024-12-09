@@ -12,7 +12,7 @@ model_loading = False
 
 import numpy as np
 import torch
-
+from torch.utils.data import DataLoader, TensorDataset
 from util.cuda import cuda
 from util.gpu_info import gpuInfo
 from util.data_augmentation import training_data_loading, training_data_augmentation
@@ -33,6 +33,8 @@ path_testing = "./test/"
 path_data = "./data/"
 path_model = "./models/UNet.model"
 
+batch_size = 2
+
 cuda_available = torch.cuda.is_available()
 if cuda_available:
     print("CUDA is available. Utilize GPUs for computation")
@@ -49,7 +51,7 @@ if cuda_available:
     model.cuda()
 
 print(model)
-
+# %%
 # The resolution of resized training images and the corresponding masks
 training_resize = 512
 # The number of resized training pairs used for data augmentation
@@ -80,36 +82,58 @@ if training_data_processing:
     np.save(f"{path_data}labels_training", labels_augmented)
     np.save(f"{path_data}images_validation", images_validation)
     np.save(f"{path_data}labels_validation", labels_validation)
-elif not model_loading:
+# %%
+if not model_loading:
     # Load the augmented training dataset and resized validation dataset
     # from your Google Drive or local file system
     images_augmented = np.load(f"{path_data}images_training.npy")
     labels_augmented = np.load(f"{path_data}labels_training.npy")
-    images_validation = np.load(f"{path_data}images_validation.npy")
-    labels_validation = np.load(f"{path_data}labels_validation.npy")
 
-if model_training:
-    print(f"\nimages_training.shape = {images_augmented.shape}")
-    print(f"labels_training.shape = {labels_augmented.shape}")
-    print(f"images_validation.shape = {images_validation.shape}")
-    print(f"labels_validation.shape = {labels_validation.shape}")
+    # Converter diretamente para tensores
+    images_augmented = torch.Tensor(images_augmented)
+    labels_augmented = torch.Tensor(labels_augmented)
+
+    # Criar o conjunto de dados e o DataLoader
+    training_set = TensorDataset(images_augmented, labels_augmented)
+    del images_augmented, labels_augmented
+    training_generator = DataLoader(training_set, batch_size=batch_size, shuffle=True)
+    del training_set
+
+    if model_validation:
+        images_validation = np.load(f"{path_data}images_validation.npy")
+        labels_validation = np.load(f"{path_data}labels_validation.npy")
+        images_validation = torch.Tensor(images_validation)
+        labels_validation = torch.Tensor(labels_validation)
+
+        # Criar o conjunto de dados e o DataLoader
+        validation_set = TensorDataset(images_validation, labels_validation)
+        del images_validation, labels_validation
+        validation_generator = DataLoader(
+            validation_set, batch_size=batch_size, shuffle=True
+        )
+        del validation_set
+
+print("\n Fim do Carregamento")
+
+# if model_training:
+# print(f"\nimages_training.shape = {training_generator.shape}")
+# print(f"labels_training.shape = {labels_augmented.shape}")
+# print(f"images_validation.shape = {validation_generator.shape}")
+# print(f"labels_validation.shape = {labels_validation.shape}")
 
 # %%
 if model_training:
     train(
         model,
-        images_augmented,
-        labels_augmented,
-        images_validation,
-        labels_validation,
+        training_generator,
+        validation_generator,
         loss_func=BCEIoULoss(),
-        batch_size=2,
         learning_rate=2e-4,
         epochs=100,
         model_validation=model_validation,
         cuda_available=cuda_available,
         path_model=path_model,
-        patience=5,
+        patience=3,
     )
 
 if model_loading:
