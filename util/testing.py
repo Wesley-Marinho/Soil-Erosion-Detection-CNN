@@ -224,6 +224,6 @@ def test(path_testing, index, model, cuda_available):
     ax[0].imshow(input_mask)
     ax[0].set_title("Groundtruth")
     ax[1].imshow(output)
-    ax[1].set_title("Prediction Result - LinkNetB7")
+    ax[1].set_title("Prediction Result - DLinkNet34")
     ax[2].imshow(highlighted_image)
-    ax[2].set_title("Segmented Image - LinkNetB7")
+    ax[2].set_title("Segmented Image - DLinkNet34")

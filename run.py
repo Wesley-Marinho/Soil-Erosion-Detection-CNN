@@ -25,14 +25,14 @@ batch_size = 3
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/LinkNetB7.model"
+path_model = "./models/DLinkNet34.model"
 
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
 gpu_info = gpuInfo()
 
-model = LinkNetB7()
+model = DLinkNet34()
 if cuda_available:
     model.cuda()
 
