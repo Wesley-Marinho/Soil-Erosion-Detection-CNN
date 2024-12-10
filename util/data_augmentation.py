@@ -142,3 +142,27 @@ def training_data_augmentation(
     labels_augmented = labels_augmented[permuted_sequence]
 
     return images_augmented, labels_augmented
+
+
+def data_augmentation(
+    training_resize,
+    training_number,
+    testing_resize,
+):
+    images_training, labels_training, images_validation, labels_validation = (
+        training_data_loading(path_training, training_resize, training_number)
+    )
+
+    rotations = [0, 45, 90, 135]
+    flips = ["original", np.flipud, np.fliplr]
+    shifts = [(-16, 16)]
+
+    images_augmented, labels_augmented = training_data_augmentation(
+        images_training, labels_training, rotations, flips, shifts, training_resize
+    )
+
+    np.save(f"{path_data}images_training", images_augmented)
+    np.save(f"{path_data}labels_training", labels_augmented)
+    np.save(f"{path_data}images_validation", images_validation)
+    np.save(f"{path_data}labels_validation", labels_validation)
+    print("\n Fim do Processamento")

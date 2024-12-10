@@ -263,7 +263,6 @@ def train(
     plt.legend()
     plt.grid()
 
-    plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 2)
     plt.plot(
         iou_epoch_history_validation,
