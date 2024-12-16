@@ -20,19 +20,19 @@ model_training = True
 model_validation = True
 model_loading = False
 
-batch_size = 3
+batch_size = 4
 
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/DLinkNet34.model"
+path_model = "./models/UNet.model"
 
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
 gpu_info = gpuInfo()
 
-model = DLinkNet34()
+model = UNet()
 if cuda_available:
     model.cuda()
 
@@ -72,7 +72,7 @@ if model_training:
         model_validation=model_validation,
         cuda_available=cuda_available,
         path_model=path_model,
-        patience=3,
+        patience=10,
     )
 
 for aux in range(747, 753):
