@@ -14,7 +14,6 @@ from networks.DLinkNet101 import *
 from networks.LinkNet34 import *
 from networks.UNet import *
 
-use_google_colab = False
 training_data_processing = False
 model_training = True
 model_validation = True
@@ -25,14 +24,14 @@ batch_size = 4
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/DLinkNet34.model"
+path_model = "./models/LinkNet34.model"
 
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
 gpu_info = gpuInfo()
 
-model = DLinkNet34()
+model = DLinkNet101()
 if cuda_available:
     model.cuda()
 
