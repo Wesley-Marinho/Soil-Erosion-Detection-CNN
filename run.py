@@ -13,6 +13,8 @@ from networks.DLinkNet50 import *
 from networks.DLinkNet101 import *
 from networks.LinkNet34 import *
 from networks.UNet import *
+from networks.DLinkNet152 import *
+from networks.LinkNet152 import *
 
 training_data_processing = False
 model_training = True
@@ -24,14 +26,14 @@ batch_size = 4
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/LinkNet34.model"
+path_model = "./models/LinkNet152.model"
 
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
 gpu_info = gpuInfo()
 
-model = DLinkNet101()
+model = LinkNet152()
 if cuda_available:
     model.cuda()
 
