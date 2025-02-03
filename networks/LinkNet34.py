@@ -49,7 +49,8 @@ class LinkNet34(nn.Module):
         super(LinkNet34, self).__init__()
         # Construct a ResNet-34 architecture from https://arxiv.org/pdf/1512.03385.pdf
         # Return a model pre-trained on ImageNet
-        resnet = models.resnet34(pretrained=True)
+        resnet = models.resnet34(weights=None)
+        # resnet = models.resnet34(weights=ResNet34_Weights.DEFAULT)
 
         # Input Block
         self.input_block = nn.Sequential(*list(resnet.children())[0:4])
