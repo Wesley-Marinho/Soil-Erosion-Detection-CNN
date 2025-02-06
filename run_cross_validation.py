@@ -29,8 +29,7 @@ batch_size = 4
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/"
-model__name = "LinkNet34.model"
+path_model = "./models/LinkNet34.model"
 
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
@@ -68,8 +67,6 @@ for fold in range(1, k):
         output_dir, model_validation, batch_size
     )
 
-    path_models = f"{path_model}/{fold}/{model__name}"
-
     k_acc, K_f1, k_iou, k_recall = train(
         model,
         training_generator,
@@ -79,7 +76,7 @@ for fold in range(1, k):
         epochs=100,
         model_validation=model_validation,
         cuda_available=cuda_available,
-        path_model=path_models,
+        path_model=path_model,
         patience=5,
     )
 

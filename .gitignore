@@ -1,10 +1,10 @@
 # Ignora todos os arquivos PNG
 training/
 util/__pycache__
+data/
 
 # Ignora outros arquivos
 *.txt
 *.log
 *.npy
 *.model
-*.h5
