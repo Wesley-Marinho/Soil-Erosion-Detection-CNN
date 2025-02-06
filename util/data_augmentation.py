@@ -3,8 +3,10 @@ from PIL import Image
 from skimage.transform import resize
 import scipy
 from tqdm import tqdm
-import os
 from sklearn.model_selection import KFold
+import os
+import numpy as np
+import scipy.ndimage
 
 
 def training_data_loading(path_training, training_resize):
@@ -46,46 +48,45 @@ def training_data_augmentation(
     flips,
     shifts,
     training_resize,
-    output_dir,
-    batch_size=100,
+    path_data,
 ):
     """
-    training_data_augmentation - Generate the augmented training dataset and save it to disk in batches.
+    training_data_augmentation - Generate the augmented training dataset.
     Args:
         images_training, labels_training (numpy): the resized training dataset
         rotations (list): the parameters for rotating resized training images and their corresponding masks (training pairs)
         flips (list): the parameters for flipping rotated training pairs
         shifts (list): the parameters for shifting flipped training pairs
         training_resize (int): the resolution of resized training pairs (default: 384)
-        batch_size (int): number of augmented samples to process and save at a time
-        output_dir (str): directory to save augmented data
     Returns:
-        None (saves augmented data to disk)
+        images_augmented, labels_augmented (numpy): the augmented training dataset
     """
     num_rota = len(rotations)
     num_flip = len(flips)
     num_shft = len(shifts)
 
-    # Calculate total number of augmented samples
+    # Calculate the total number of augmented images
     num_training = images_training.shape[0]
     num_augmented = num_training * num_rota * num_flip * num_shft
 
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
+    # Pre-allocate arrays for augmented data
+    images_augmented = np.empty(
+        (num_augmented, 3, training_resize, training_resize), dtype=np.float32
+    )
+    labels_augmented = np.empty(
+        (num_augmented, 1, training_resize, training_resize), dtype=np.uint8
+    )
 
-    # Initialize batch storage
-    batch_images = []
-    batch_labels = []
-    batch_counter = 0
-    file_counter = 0
-    print(num_training)
+    print(f"images_augmented.shape = {images_augmented.shape}")
+    print(f"labels_augmented.shape = {labels_augmented.shape}")
+
+    counter = 0
     for index in tqdm(range(num_training)):
-
-        image = np.transpose(images_training[index], (1, 2, 0))
-        label = np.transpose(labels_training[index], (1, 2, 0))
+        image = np.transpose(images_training[index], (1, 2, 0)).astype(np.float32)
+        label = np.transpose(labels_training[index], (1, 2, 0)).astype(np.float32)
 
         for rota in rotations:
-            # Rotate a resized training pair
+            # Rotate the image and label
             image_rota = scipy.ndimage.rotate(
                 image, rota, reshape=False, mode="reflect"
             )
@@ -94,7 +95,7 @@ def training_data_augmentation(
             )
 
             for flip in flips:
-                # Flip the rotated training pair
+                # Flip the rotated image and label
                 if flip == "original":
                     image_flip = image_rota
                     label_flip = label_rota
@@ -103,7 +104,7 @@ def training_data_augmentation(
                     label_flip = flip(label_rota)
 
                 for shft in shifts:
-                    # Shift the flipped training pair
+                    # Shift the flipped image and label
                     shft_H = np.random.uniform(low=shft[0], high=shft[1], size=1)[0]
                     shft_W = np.random.uniform(low=shft[0], high=shft[1], size=1)[0]
                     image_shft = scipy.ndimage.shift(
@@ -113,59 +114,22 @@ def training_data_augmentation(
                         label_flip, (shft_H, shft_W, 0), mode="reflect"
                     )
 
-                    # Append the augmented image and label to the batch
-                    batch_images.append(
-                        np.clip(np.transpose(image_shft, (2, 0, 1)), 0, 1)
+                    # Store the augmented data directly in the pre-allocated arrays
+                    images_augmented[counter] = np.clip(
+                        np.transpose(image_shft, (2, 0, 1)), 0, 1
                     )
-                    batch_labels.append((np.transpose(label_shft, (2, 0, 1)) > 0.3))
-                batch_counter += 1
+                    labels_augmented[counter] = (
+                        np.transpose(label_shft, (2, 0, 1)) > 0.3
+                    ).astype(np.uint8)
+                    counter += 1
 
-                # Save batch to disk if it reaches the batch size
-        if batch_counter >= batch_size:
-            save_batch(batch_images, batch_labels, output_dir, file_counter)
-            file_counter += 1
-            batch_images = []
-            batch_labels = []
-            batch_counter = 0
-
-        # Clear memory for the current image and label
-        del (
-            image,
-            label,
-            image_rota,
-            label_rota,
-            image_flip,
-            label_flip,
-            image_shft,
-            label_shft,
-        )
-
-    # Save any remaining data in the last batch
-    if batch_counter > 0:
-        save_batch(batch_images, batch_labels, output_dir, file_counter)
-
-    print(f"Augmented data saved to {output_dir}")
+    np.save(f"{path_data}images_training", images_augmented)
+    del images_augmented
+    np.save(f"{path_data}labels_training", labels_augmented)
+    del labels_augmented
 
 
-def save_batch(batch_images, batch_labels, output_dir, file_counter):
-    """
-    Save a batch of augmented images and labels to disk.
-    """
-    batch_images = np.array(batch_images)
-    batch_labels = np.array(batch_labels)
-
-    np.save(
-        os.path.join(output_dir, f"images_augmented_{file_counter}.npy"), batch_images
-    )
-    np.save(
-        os.path.join(output_dir, f"labels_augmented_{file_counter}.npy"), batch_labels
-    )
-
-    # Clear memory
-    del batch_images, batch_labels
-
-
-def data_augmentation(training_resize, path_training, path_data):
+def database_construction(training_resize, path_training, path_data):
     images_loading, labels_loading = training_data_loading(
         path_training, training_resize
     )
@@ -174,6 +138,7 @@ def data_augmentation(training_resize, path_training, path_data):
     rotations = [0, 45, 90, 135]
     flips = ["original", np.flipud, np.fliplr]
     shifts = [(-16, 16)]
+
     kf = KFold(n_splits=k, shuffle=True)
 
     for fold, (train_idx, val_idx) in enumerate(kf.split(images_loading)):
@@ -186,9 +151,9 @@ def data_augmentation(training_resize, path_training, path_data):
         )
 
         val_images, val_labels = images_loading[val_idx], labels_loading[val_idx]
-
+        np.save(f"{path_data}{folds}/labels_validation", val_labels)
         np.save(f"{path_data}{folds}/images_validation", val_images)
-        np.save(f"{path_data}{folds}/labels_validation", val_images)
+
         del val_images, val_labels
 
         output_dir = f"{path_data}{folds}/"
@@ -202,4 +167,3 @@ def data_augmentation(training_resize, path_training, path_data):
             training_resize,
             output_dir,
         )
-        print(f"\n Fim do Processamento {folds}")

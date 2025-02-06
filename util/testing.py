@@ -227,3 +227,5 @@ def test(path_testing, index, model, cuda_available):
     ax[1].set_title("Prediction Result - LinkNet34")
     ax[2].imshow(highlighted_image)
     ax[2].set_title("Segmented Image - LinkNet34")
+    plt.tight_layout()
+    plt.show()

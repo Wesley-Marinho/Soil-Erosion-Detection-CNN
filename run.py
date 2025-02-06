@@ -5,7 +5,7 @@ from util.data_augmentation import data_augmentation
 from util.loss import BCEIoULoss
 from util.training import train
 from util.testing import test
-from util.data_load import data_load
+from util.data_load import data_load_old
 
 from networks.LinkNetB7 import *
 from networks.DLinkNet34 import *
@@ -54,7 +54,7 @@ if training_data_processing:
 # %%
 
 if not model_loading:
-    training_generator, validation_generator = data_load(
+    training_generator, validation_generator = data_load_old(
         path_data, model_validation, batch_size
     )
 # %%

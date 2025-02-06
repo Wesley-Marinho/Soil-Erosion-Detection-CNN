@@ -9,7 +9,7 @@ from USLE.USLE import calc_USLE
 from USLE.Save_tif import (
     save_tif,
     resize,
-    save_nc,
+    save_to_netcdf,
 )
 
 import rasterio
@@ -124,5 +124,14 @@ A_Paths_tiff = [
 
 A = calc_USLE(S_file, L_file, R_files, K_file, C_P_file)
 
+color_map = {
+    1: [64, 64, 64],
+    2: [236, 236, 236],
+    3: [252, 230, 220],
+    4: [246, 178, 148],
+    5: [226, 94, 88],
+    6: [202, 1, 32],
+}
+
 for a, A_Path in zip(A, A_Paths_tiff):
-    save_nc(a, geo_path, A_Path, shp_path)
+    save_to_netcdf(A, A_Path, color_map)

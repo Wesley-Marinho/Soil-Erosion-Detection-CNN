@@ -5,6 +5,7 @@ Reference - https://ieeexplore.ieee.org/abstract/document/8305148
 
 from torch import nn
 from torchvision import models
+import torch
 
 
 class decoder_block(nn.Module):
