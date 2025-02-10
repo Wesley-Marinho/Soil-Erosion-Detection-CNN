@@ -9,12 +9,13 @@ from torchvision import models
 
 class decoder_block(nn.Module):
     # Instantiate all the modules
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, dropout_rate=0.5):
         super(decoder_block, self).__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, in_channels // 4, kernel_size=1),
             nn.BatchNorm2d(in_channels // 4),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout_rate),
             nn.ConvTranspose2d(
                 in_channels // 4,
                 in_channels // 4,
@@ -25,9 +26,11 @@ class decoder_block(nn.Module):
             ),
             nn.BatchNorm2d(in_channels // 4),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout_rate),
             nn.Conv2d(in_channels // 4, out_channels, kernel_size=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout_rate),
         )
 
     # Define the block structure
@@ -45,7 +48,7 @@ class decoder_block(nn.Module):
 
 class LinkNet152(nn.Module):
     # Instantiate all the modules
-    def __init__(self):
+    def __init__(self, dropout_rate=0.5):
         super(LinkNet152, self).__init__()
         # Construct a ResNet-152 architecture from https://arxiv.org/pdf/1512.03385.pdf
         # Return a model pre-trained on ImageNet
@@ -61,17 +64,19 @@ class LinkNet152(nn.Module):
         self.encoder4 = nn.Sequential(*list(resnet.children())[7])
 
         # Decoder Blocks
-        self.decoder4 = decoder_block(2048, 1024)
-        self.decoder3 = decoder_block(1024, 512)
-        self.decoder2 = decoder_block(512, 256)
-        self.decoder1 = decoder_block(256, 64)
+        self.decoder4 = decoder_block(2048, 1024, dropout_rate)
+        self.decoder3 = decoder_block(1024, 512, dropout_rate)
+        self.decoder2 = decoder_block(512, 256, dropout_rate)
+        self.decoder1 = decoder_block(256, 64, dropout_rate)
 
         # Output Block
         self.output_block = nn.Sequential(
             nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout_rate),
             nn.Conv2d(32, 32, kernel_size=3),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout_rate),
             nn.Conv2d(32, 1, kernel_size=2, padding=1),
             nn.Sigmoid(),
         )

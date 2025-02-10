@@ -8,12 +8,15 @@ from torchvision import models
 
 class decoder_block(nn.Module):
     # Instantiate all the modules
-    def __init__(self, in_channels, out_channels, stride=2, output_padding=1):
+    def __init__(
+        self, in_channels, out_channels, stride=2, output_padding=1, dropout_rate=0.5
+    ):
         super(decoder_block, self).__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, in_channels // 4, kernel_size=1),
             nn.BatchNorm2d(in_channels // 4),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Add dropout here
             nn.ConvTranspose2d(
                 in_channels // 4,
                 in_channels // 4,
@@ -24,6 +27,7 @@ class decoder_block(nn.Module):
             ),
             nn.BatchNorm2d(in_channels // 4),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Add dropout here
             nn.Conv2d(in_channels // 4, out_channels, kernel_size=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
@@ -44,7 +48,7 @@ class decoder_block(nn.Module):
 
 class LinkNetB7(nn.Module):
     # Instantiate all the modules
-    def __init__(self):
+    def __init__(self, dropout_rate=0.5):
         super(LinkNetB7, self).__init__()
         # Construct a EfficientNetB7 architecture from https://arxiv.org/abs/1905.11946
         # Return a model pre-trained on ImageNet
@@ -63,20 +67,36 @@ class LinkNetB7(nn.Module):
         self.encoder7 = nn.Sequential(*(list(efficientnet.children())[0][7]))
 
         # Decoder Blocks
-        self.decoder7 = decoder_block(640, 384, stride=1, output_padding=0)
-        self.decoder6 = decoder_block(384, 224, stride=2, output_padding=1)
-        self.decoder5 = decoder_block(224, 160, stride=1, output_padding=0)
-        self.decoder4 = decoder_block(160, 80, stride=2, output_padding=1)
-        self.decoder3 = decoder_block(80, 48, stride=2, output_padding=1)
-        self.decoder2 = decoder_block(48, 32, stride=2, output_padding=1)
-        self.decoder1 = decoder_block(32, 64, stride=2, output_padding=1)
+        self.decoder7 = decoder_block(
+            640, 384, stride=1, output_padding=0, dropout_rate=dropout_rate
+        )
+        self.decoder6 = decoder_block(
+            384, 224, stride=2, output_padding=1, dropout_rate=dropout_rate
+        )
+        self.decoder5 = decoder_block(
+            224, 160, stride=1, output_padding=0, dropout_rate=dropout_rate
+        )
+        self.decoder4 = decoder_block(
+            160, 80, stride=2, output_padding=1, dropout_rate=dropout_rate
+        )
+        self.decoder3 = decoder_block(
+            80, 48, stride=2, output_padding=1, dropout_rate=dropout_rate
+        )
+        self.decoder2 = decoder_block(
+            48, 32, stride=2, output_padding=1, dropout_rate=dropout_rate
+        )
+        self.decoder1 = decoder_block(
+            32, 64, stride=2, output_padding=1, dropout_rate=dropout_rate
+        )
 
         # Output Block
         self.output_block = nn.Sequential(
             nn.ConvTranspose2d(64, 32, kernel_size=3, stride=1),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Add dropout here
             nn.Conv2d(32, 32, kernel_size=4),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Add dropout here
             nn.Conv2d(32, 1, kernel_size=2, padding=1),
             nn.Sigmoid(),
         )

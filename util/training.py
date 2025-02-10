@@ -27,7 +27,7 @@ def train(
     # Implement Adam algorithm
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     # Decay the learning rate by gamma every step_size epochs.
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.3)
 
     # Lists to store training and validation metrics
     train_loss_history = []
@@ -96,7 +96,7 @@ def train(
             f1_train = f1_score(
                 labels.cpu().flatten().int(),
                 predicted.cpu().flatten(),
-                average="binary",
+                average="weighted",
             )
             iou_train = jaccard_score(
                 labels.cpu().flatten().int(),
@@ -178,7 +178,7 @@ def train(
                     f1 = f1_score(
                         labels.cpu().flatten().int(),
                         predicted.cpu().flatten(),
-                        average="binary",
+                        average="weighted",
                     )
                     iou = jaccard_score(
                         labels.cpu().flatten().int(),
@@ -188,7 +188,7 @@ def train(
                     recall = recall_score(
                         labels.cpu().flatten().int(),
                         predicted.cpu().flatten(),
-                        average="binary",
+                        average="weighted",
                     )
                     confusion_matrix_validation = confusion_matrix(
                         labels.cpu().flatten().int(),
@@ -270,7 +270,7 @@ def train(
     # Iterar sobre a lista de matrizes de confusão e extrair os valores
     for cm in confusion_matrix_epoch_history_training:
         tn, fp, fn, tp = cm.ravel()  # Desembrulha os valores da matriz de confusão
-        print(tn)
+        # print(tn)
         tn_values.append(tn)
         fp_values.append(fp)
         fn_values.append(fn)
@@ -300,7 +300,7 @@ def train(
     # Iterar sobre a lista de matrizes de confusão e extrair os valores
     for cm in confusion_matrix_epoch_history_validation:
         tn, fp, fn, tp = cm.ravel()  # Desembrulha os valores da matriz de confusão
-        print(tn)
+        # print(tn)
         tn_values.append(tn)
         fp_values.append(fp)
         fn_values.append(fn)

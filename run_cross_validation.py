@@ -24,7 +24,7 @@ model_validation = True
 model_loading = False
 data_loading = False
 
-batch_size = 4
+batch_size = 10
 
 path_training = "./training/"
 path_testing = "./test/"
