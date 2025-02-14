@@ -68,7 +68,7 @@ class decoder_block(nn.Module):
 class DLinkNet34(nn.Module):
     def __init__(self, dropout_rate=0.5):
         super(DLinkNet34, self).__init__()
-        resnet = models.resnet34(pretrained=True)
+        resnet = models.resnet34(weights=None)
 
         self.input_block = nn.Sequential(*list(resnet.children())[0:4])
 

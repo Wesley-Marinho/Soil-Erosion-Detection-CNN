@@ -94,7 +94,7 @@ class DLinkNet101(nn.Module):
         super(DLinkNet101, self).__init__()
         # Construct a ResNet-101 architecture from https://arxiv.org/pdf/1512.03385.pdf
         # Return a model pre-trained on ImageNet
-        resnet = models.resnet101(pretrained=True)
+        resnet = models.resnet101(weights=None)
 
         # Input Block
         self.input_block = nn.Sequential(*list(resnet.children())[0:4])

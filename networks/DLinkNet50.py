@@ -94,7 +94,7 @@ class DLinkNet50(nn.Module):
         super(DLinkNet50, self).__init__()
         # Construct a ResNet-50 architecture from https://arxiv.org/pdf/1512.03385.pdf
         # Return a model pre-trained on ImageNet
-        resnet = models.resnet50(pretrained=True)
+        resnet = models.resnet50(weights=None)
 
         # Input Block
         self.input_block = nn.Sequential(*list(resnet.children())[0:4])

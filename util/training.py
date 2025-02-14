@@ -10,6 +10,7 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 import seaborn as sns
+from sklearn.model_selection import validation_curve
 
 
 def train(
@@ -234,11 +235,11 @@ def train(
             "Recall de validação: ",
             sum(recall_history_validation) / len(recall_history_validation),
         )
-        print(
-            "Matriz de Confusão validação: ",
-            sum(confusion_matrix_history_validation)
-            / len(confusion_matrix_history_validation),
-        )
+        # print(
+        #    "Matriz de Confusão validação: ",
+        #    sum(confusion_matrix_history_validation)
+        #    / len(confusion_matrix_history_validation),
+        # )
         scheduler.step()
 
         # Early stopping
@@ -444,9 +445,9 @@ def train(
     plt.tight_layout()
     plt.show()
 
-    k_acc = sum(acc_score_history) / len(acc_score_history)
-    K_f1 = sum(f1_score_history) / len(f1_score_history)
-    k_iou = sum(iou_score_history) / len(iou_score_history)
+    k_acc = sum(val_accuracy_history) / len(val_accuracy_history)
+    K_f1 = sum(f1_epoch_history_validation) / len(f1_epoch_history_validation)
+    k_iou = sum(iou_epoch_history_validation) / len(iou_epoch_history_validation)
     k_recall = sum(recall_history_validation) / len(recall_history_validation)
 
     return k_acc, K_f1, k_iou, k_recall

@@ -7,7 +7,6 @@ from torchvision import models
 
 
 class decoder_block(nn.Module):
-    # Instantiate all the modules
     def __init__(
         self, in_channels, out_channels, stride=2, output_padding=1, dropout_rate=0.5
     ):
@@ -16,7 +15,7 @@ class decoder_block(nn.Module):
             nn.Conv2d(in_channels, in_channels // 4, kernel_size=1),
             nn.BatchNorm2d(in_channels // 4),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),  # Add dropout here
+            nn.Dropout(dropout_rate),
             nn.ConvTranspose2d(
                 in_channels // 4,
                 in_channels // 4,
@@ -27,32 +26,22 @@ class decoder_block(nn.Module):
             ),
             nn.BatchNorm2d(in_channels // 4),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),  # Add dropout here
+            nn.Dropout(dropout_rate),
             nn.Conv2d(in_channels // 4, out_channels, kernel_size=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),
         )
 
-    # Define the block structure
     def forward(self, x):
-        """
-        decoder_block's forward function.
-        Args:
-            x (tensor): input tensor
-        Returns:
-            x (tensor): the output of this block after processing
-        """
         x = self.block(x)
         return x
 
 
 class LinkNetB7(nn.Module):
-    # Instantiate all the modules
     def __init__(self, dropout_rate=0.5):
         super(LinkNetB7, self).__init__()
-        # Construct a EfficientNetB7 architecture from https://arxiv.org/abs/1905.11946
-        # Return a model pre-trained on ImageNet
-        efficientnet = models.efficientnet_b7(pretrained=True)
+        efficientnet = models.efficientnet_b7(weights=None)
 
         # Input Block
         self.input_block = nn.Sequential(*(list(efficientnet.children())[0][0]))
@@ -66,7 +55,7 @@ class LinkNetB7(nn.Module):
         self.encoder6 = nn.Sequential(*(list(efficientnet.children())[0][6]))
         self.encoder7 = nn.Sequential(*(list(efficientnet.children())[0][7]))
 
-        # Decoder Blocks
+        # Decoder Blocks with Dropout
         self.decoder7 = decoder_block(
             640, 384, stride=1, output_padding=0, dropout_rate=dropout_rate
         )
@@ -89,27 +78,19 @@ class LinkNetB7(nn.Module):
             32, 64, stride=2, output_padding=1, dropout_rate=dropout_rate
         )
 
-        # Output Block
+        # Output Block with Dropout
         self.output_block = nn.Sequential(
             nn.ConvTranspose2d(64, 32, kernel_size=3, stride=1),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),  # Add dropout here
+            nn.Dropout(dropout_rate),
             nn.Conv2d(32, 32, kernel_size=4),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),  # Add dropout here
+            nn.Dropout(dropout_rate),
             nn.Conv2d(32, 1, kernel_size=2, padding=1),
             nn.Sigmoid(),
         )
 
-    # Define the network structure
     def forward(self, x):
-        """
-        LinkNetB7's forward function.
-        Args:
-            x (tensor): input tensor
-        Returns:
-            o1 (tensor): the output of this model after processing
-        """
         # Input
         i1 = self.input_block(x)
 
