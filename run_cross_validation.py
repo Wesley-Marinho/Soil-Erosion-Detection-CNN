@@ -9,13 +9,15 @@ from util.data_load import data_load
 import numpy as np
 import os
 
-from networks.LinkNetB7 import *
+from networks.UNet import *
+
 from networks.DLinkNet34 import *
 from networks.DLinkNet50 import *
 from networks.DLinkNet101 import *
-from networks.LinkNet34 import *
-from networks.UNet import *
 from networks.DLinkNet152 import *
+
+from networks.LinkNetB7 import *
+from networks.LinkNet34 import *
 from networks.LinkNet152 import *
 
 torch.cuda.empty_cache()
@@ -26,19 +28,19 @@ model_validation = True
 model_loading = False
 data_loading = False
 
-batch_size = 10
+batch_size = 4
 
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/DLinkNet101.model"
+path_model = "./models/LinkNet152.model"
 
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
 gpu_info = gpuInfo()
 
-model = DLinkNet101()
+model = LinkNet152()
 if cuda_available:
     model.cuda()
 

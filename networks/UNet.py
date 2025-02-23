@@ -9,13 +9,14 @@ from torch import nn
 
 class up_sampling(nn.Module):
     # Instantiate all the modules
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, dropout_rate=0.5):
         super(up_sampling, self).__init__()
         self.upsampling = nn.Sequential(
             nn.Upsample(scale_factor=2),
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Add dropout here
         )
 
     # Define the block structure
@@ -33,15 +34,17 @@ class up_sampling(nn.Module):
 
 class UNet_unit(nn.Module):
     # Instantiate all the modules
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, dropout_rate=0.5):
         super(UNet_unit, self).__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Add dropout here
             nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            nn.Dropout(dropout_rate),  # Add dropout here
         )
 
     # Define the block structure
@@ -59,30 +62,30 @@ class UNet_unit(nn.Module):
 
 class UNet(nn.Module):
     # Instantiate all the modules
-    def __init__(self):
+    def __init__(self, dropout_rate=0.5):
         super(UNet, self).__init__()
         # contracting path (left side)
-        self.contracting_level1 = UNet_unit(3, 64)
+        self.contracting_level1 = UNet_unit(3, 64, dropout_rate)
         self.maxpooling_level1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_level2 = UNet_unit(64, 128)
+        self.contracting_level2 = UNet_unit(64, 128, dropout_rate)
         self.maxpooling_level2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_level3 = UNet_unit(128, 256)
+        self.contracting_level3 = UNet_unit(128, 256, dropout_rate)
         self.maxpooling_level3 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_level4 = UNet_unit(256, 512)
+        self.contracting_level4 = UNet_unit(256, 512, dropout_rate)
         self.maxpooling_level4 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         # bridge
-        self.bridge_level5 = UNet_unit(512, 1024)
+        self.bridge_level5 = UNet_unit(512, 1024, dropout_rate)
 
         # expansive path (right side)
-        self.upconv_level6 = up_sampling(1024, 512)
-        self.expansive_level6 = UNet_unit(1024, 512)
-        self.upconv_level7 = up_sampling(512, 256)
-        self.expansive_level7 = UNet_unit(512, 256)
-        self.upconv_level8 = up_sampling(256, 128)
-        self.expansive_level8 = UNet_unit(256, 128)
-        self.upconv_level9 = up_sampling(128, 64)
-        self.expansive_level9 = UNet_unit(128, 64)
+        self.upconv_level6 = up_sampling(1024, 512, dropout_rate)
+        self.expansive_level6 = UNet_unit(1024, 512, dropout_rate)
+        self.upconv_level7 = up_sampling(512, 256, dropout_rate)
+        self.expansive_level7 = UNet_unit(512, 256, dropout_rate)
+        self.upconv_level8 = up_sampling(256, 128, dropout_rate)
+        self.expansive_level8 = UNet_unit(256, 128, dropout_rate)
+        self.upconv_level9 = up_sampling(128, 64, dropout_rate)
+        self.expansive_level9 = UNet_unit(128, 64, dropout_rate)
 
         # output
         self.output_conv = nn.Conv2d(64, 1, kernel_size=1, stride=1, padding=0)
