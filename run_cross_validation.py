@@ -11,14 +11,14 @@ import os
 
 from networks.UNet import *
 
+from networks.LinkNetB7 import *
+from networks.LinkNet34 import *
+from networks.LinkNet152 import *
+
 from networks.DLinkNet34 import *
 from networks.DLinkNet50 import *
 from networks.DLinkNet101 import *
 from networks.DLinkNet152 import *
-
-from networks.LinkNetB7 import *
-from networks.LinkNet34 import *
-from networks.LinkNet152 import *
 
 torch.cuda.empty_cache()
 
@@ -33,14 +33,14 @@ batch_size = 4
 path_training = "./training/"
 path_testing = "./test/"
 path_data = "./data/"
-path_model = "./models/LinkNet152.model"
+path_model = "./models/UNet.model"
 
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
 gpu_info = gpuInfo()
 
-model = LinkNet152()
+model = UNet()
 if cuda_available:
     model.cuda()
 
@@ -80,7 +80,7 @@ for fold in range(1, k):
         epochs=100,
         model_validation=model_validation,
         cuda_available=cuda_available,
-        path_model=path_model,
+        model_save_path=path_model,
         patience=10,
     )
 

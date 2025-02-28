@@ -52,7 +52,7 @@ class LinkNet152(nn.Module):
         super(LinkNet152, self).__init__()
         # Construct a ResNet-152 architecture from https://arxiv.org/pdf/1512.03385.pdf
         # Return a model pre-trained on ImageNet
-        resnet = models.resnet152(pretrained=True)
+        resnet = models.resnet152(weights=None)
 
         # Input Block
         self.input_block = nn.Sequential(*list(resnet.children())[0:4])

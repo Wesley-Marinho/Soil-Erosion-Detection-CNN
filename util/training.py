@@ -8,9 +8,23 @@ from sklearn.metrics import (
     jaccard_score,
     recall_score,
     confusion_matrix,
+    balanced_accuracy_score,
 )
 import seaborn as sns
-from sklearn.model_selection import validation_curve
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+
+def configure_optimizers(model, learning_rate=1e-3, weight_decay=1e-4):
+    """
+    Configura o otimizador e o scheduler de learning rate.
+    O ReduceLROnPlateau reduz a taxa de aprendizado quando a métrica de validação para de melhorar.
+    """
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=learning_rate, weight_decay=weight_decay
+    )
+    scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.2, patience=5)
+
+    return optimizer, scheduler
 
 
 def train(
@@ -22,58 +36,54 @@ def train(
     epochs,
     model_validation,
     cuda_available,
-    path_model,
+    model_save_path,
     patience,
 ):
-    # Implement Adam algorithm
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    # Decay the learning rate by gamma every step_size epochs.
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.3)
-
-    # Lists to store training and validation metrics
-    train_loss_history = []
-    train_accuracy_history = []
-    val_loss_history = []
-    val_accuracy_history = []
+    optimizer, scheduler = configure_optimizers(model, learning_rate)
 
     f1_score_history = []
-    f1_score_history_training = []
-    f1_epoch_history_training = []
-    f1_epoch_history_validation = []
+    f1_score_training_history = []
+    f1_epoch_training_history = []
+    f1_epoch_validation_history = []
 
     iou_score_history = []
-    iou_epoch_history_training = []
-    iou_score_history_training = []
-    iou_epoch_history_validation = []
+    iou_epoch_training_history = []
+    iou_score_training_history = []
+    iou_epoch_validation_history = []
 
-    acc_score_history = []
+    accuracy_score_training_history = []
+    accuracy_score_validation_history = []
+    accuracy_epoch_training_history = []
+    accuracy_epoch_validation_history = []
 
-    recall_history_training = []
-    recall_epoch_history_training = []
-    recall_epoch_history_validation = []
-    recall_history_validation = []
+    loss_score_training_history = []
+    loss_score_validation_history = []
+    loss_epoch_training_history = []
+    loss_epoch_validation_history = []
 
-    confusion_matrix_history_training = []
-    confusion_matrix_epoch_history_training = []
-    confusion_matrix_epoch_history_validation = []
-    confusion_matrix_history_validation = []
+    recall_training_history = []
+    recall_epoch_training_history = []
+    recall_epoch_validation_history = []
+    recall_validation_history = []
+
+    confusion_matrix_training_history = []
+    confusion_matrix_epoch_training_history = []
+    confusion_matrix_epoch_validation_history = []
+    confusion_matrix_validation_history = []
 
     best_val_loss = float("inf")
     patience_counter = 0
 
-    # Loop over epochs
     for epoch in tqdm(range(epochs)):
-        # Training
-        print(f"\n---------Training for Epoch {epoch + 1} starting:---------")
+        print(f"\n--------- Training for Epoch {epoch + 1} starting: ---------")
         model.train()
         loss_training = 0
         accuracy_training = 0
-        cont = 0
+        batch_count = 0
         accuracy_validation = 0
-        # Loop over batches in an epoch using training_generator
+
         for index, (inputs, labels) in enumerate(training_generator):
             if cuda_available:
-                # Transfer to GPU
                 inputs, labels = inputs.cuda(), labels.cuda()
 
             optimizer.zero_grad()
@@ -82,169 +92,165 @@ def train(
             loss.backward()
             optimizer.step()
 
-            loss_training += loss
-
             predicted = (outputs > 0.5).float()
             correct = (predicted == labels).float()
-            accuracy = correct.sum() / correct.numel()
+            batch_count += 1
 
-            accuracy_training += accuracy
-            cont += 1
-
-            ACC = accuracy_score(
+            accuracy = balanced_accuracy_score(
                 labels.cpu().flatten().int(), predicted.cpu().flatten()
             )
             f1_train = f1_score(
                 labels.cpu().flatten().int(),
                 predicted.cpu().flatten(),
-                average="weighted",
+                average="macro",
             )
             iou_train = jaccard_score(
                 labels.cpu().flatten().int(),
                 predicted.cpu().flatten(),
-                average="weighted",
+                average="macro",
             )
             recall_train = recall_score(
                 labels.cpu().flatten().int(),
                 predicted.cpu().flatten(),
-                average="weighted",
+                average="macro",
             )
             confusion_matrix_train = confusion_matrix(
                 labels.cpu().flatten().int(),
                 predicted.cpu().flatten(),
             )
-            # Use 'weighted' para calcular o IOU
-            f1_score_history_training.append(f1_train)
-            iou_score_history_training.append(iou_train)
-            recall_history_training.append(recall_train)
-            confusion_matrix_history_training.append(confusion_matrix_train)
+
+            accuracy_score_training_history.append(accuracy)
+            f1_score_training_history.append(f1_train)
+            iou_score_training_history.append(iou_train)
+            recall_training_history.append(recall_train)
+            confusion_matrix_training_history.append(confusion_matrix_train)
+            loss_score_training_history.append(loss.item())
 
             if index % 20 == 0:
-                loss_item = loss.item()
-                print(f"→ Running_loss for Batch {index + 1}: {loss_item}")
-                print(f"→ ACC for Batch {index + 1}: {accuracy}")
+                print(f"→ Running loss for Batch {index + 1}: {loss.item()}")
 
-        accuracy_training_final = accuracy_training / cont
-        loss_training_final = loss_training / cont
-        print(f"\033[1mTraining loss for Epoch {epoch + 1}: {loss_training_final}")
-        print(f"\033[1mTraining ACC for Epoch {epoch + 1}: {accuracy_training_final}")
-        f1_epoch_history_training.append(
-            sum(f1_score_history_training) / len(f1_score_history_training)
+        print(
+            f"\033[1mTraining loss for Epoch {epoch + 1}: {sum(loss_score_training_history) / len(loss_score_training_history)}"
         )
-        iou_epoch_history_training.append(
-            sum(iou_score_history_training) / len(iou_score_history_training)
-        )
-        # Append epoch training loss and accuracy to the history lists
-        train_loss_history.append(loss_training.item() / cont)
-
-        train_accuracy_history.append(accuracy_training.item() / cont)
-
-        recall_epoch_history_training.append(
-            sum(recall_history_training) / len(recall_history_training)
+        print(
+            f"\033[1mTraining accuracy for Epoch {epoch + 1}: {sum(accuracy_score_training_history) / len(accuracy_score_training_history)}"
         )
 
-        confusion_matrix_epoch_history_training.append(
-            sum(confusion_matrix_history_training)
-            / len(confusion_matrix_history_training)
+        f1_epoch_training_history.append(
+            sum(f1_score_training_history) / len(f1_score_training_history)
+        )
+        iou_epoch_training_history.append(
+            sum(iou_score_training_history) / len(iou_score_training_history)
+        )
+        loss_epoch_training_history.append(
+            sum(loss_score_training_history) / len(loss_score_training_history)
+        )
+        accuracy_epoch_training_history.append(
+            sum(accuracy_score_training_history) / len(accuracy_score_training_history)
+        )
+        recall_epoch_training_history.append(
+            sum(recall_training_history) / len(recall_training_history)
+        )
+        confusion_matrix_epoch_training_history.append(
+            sum(confusion_matrix_training_history)
+            / len(confusion_matrix_training_history)
         )
 
         if model_validation:
-            # Validation
-            print(f"--------Validation for Epoch {epoch + 1} starting:--------")
+            print(f"-------- Validation for Epoch {epoch + 1} starting: --------")
             model.eval()
             with torch.no_grad():
                 loss_validation = 0
+                validation_batch_count = 0
 
-                cont1 = 0
-                # Loop over batches in an epoch using validation_generator
                 for index, (inputs, labels) in enumerate(validation_generator):
                     if cuda_available:
-                        # Transfer to GPU
                         inputs, labels = inputs.cuda(), labels.cuda()
 
                     outputs = model(inputs)
-                    loss_validation += loss_func(outputs, labels)
+                    loss_validation = loss_func(outputs, labels)
 
                     predicted = (outputs > 0.5).float()
                     correct = (predicted == labels).float()
                     accuracy = correct.sum() / correct.numel()
 
-                    cont1 += 1
-                    accuracy_validation += accuracy
+                    validation_batch_count += 1
 
-                    #  Calculate F1-score and IOU
-                    ACC = accuracy_score(
+                    accuracy_val = balanced_accuracy_score(
                         labels.cpu().flatten().int(), predicted.cpu().flatten()
                     )
-                    f1 = f1_score(
+                    f1_val = f1_score(
                         labels.cpu().flatten().int(),
                         predicted.cpu().flatten(),
-                        average="weighted",
+                        average="macro",
                     )
-                    iou = jaccard_score(
+                    iou_val = jaccard_score(
                         labels.cpu().flatten().int(),
                         predicted.cpu().flatten(),
-                        average="weighted",
+                        average="macro",
                     )
-                    recall = recall_score(
+                    recall_val = recall_score(
                         labels.cpu().flatten().int(),
                         predicted.cpu().flatten(),
-                        average="weighted",
+                        average="macro",
                     )
-                    confusion_matrix_validation = confusion_matrix(
+                    confusion_matrix_val = confusion_matrix(
                         labels.cpu().flatten().int(),
                         predicted.cpu().flatten(),
                     )
 
-                    # Use 'weighted' para calcular o IOU
-                    f1_score_history.append(f1)
-                    iou_score_history.append(iou)
-                    acc_score_history.append(ACC)
-                    recall_history_validation.append(recall)
-                    confusion_matrix_history_validation.append(
-                        confusion_matrix_validation
-                    )
-            # accuracy_validation_final=accuracy_validation/cont1
-            loss_validation_final = loss_validation / cont1
+                    f1_score_history.append(f1_val)
+                    iou_score_history.append(iou_val)
+                    accuracy_score_validation_history.append(accuracy_val)
+                    recall_validation_history.append(recall_val)
+                    confusion_matrix_validation_history.append(confusion_matrix_val)
+                    loss_score_validation_history.append(loss_validation.item())
+
             print(
-                f"\033[1mValidation loss for Epoch {epoch + 1}: {loss_validation_final}\033[0m\n"
+                f"\033[1mValidation loss for Epoch {epoch + 1}: {sum(loss_score_validation_history) / len(loss_score_validation_history)}\033[0m\n"
             )
 
-        val_loss_history.append(loss_validation.item() / cont1)
-        val_accuracy_history.append(accuracy_validation.item() / cont1)
-        f1_epoch_history_validation.append(
+        loss_epoch_validation_history.append(
+            sum(loss_score_validation_history) / len(loss_score_validation_history)
+        )
+        accuracy_epoch_validation_history.append(
+            sum(accuracy_score_validation_history)
+            / len(accuracy_score_validation_history)
+        )
+        f1_epoch_validation_history.append(
             sum(f1_score_history) / len(f1_score_history)
         )
-        iou_epoch_history_validation.append(
+        iou_epoch_validation_history.append(
             sum(iou_score_history) / len(iou_score_history)
         )
-        recall_epoch_history_validation.append(
-            sum(recall_history_validation) / len(recall_history_validation)
+        recall_epoch_validation_history.append(
+            sum(recall_validation_history) / len(recall_validation_history)
         )
-        confusion_matrix_epoch_history_validation.append(
-            sum(confusion_matrix_history_validation)
-            / len(confusion_matrix_history_validation)
+        confusion_matrix_epoch_validation_history.append(
+            sum(confusion_matrix_validation_history)
+            / len(confusion_matrix_validation_history)
         )
 
         print(
-            "Acurácia de validação: ", sum(acc_score_history) / len(acc_score_history)
+            "Validation accuracy: ",
+            sum(accuracy_epoch_validation_history)
+            / len(accuracy_epoch_validation_history),
         )
-        print("F1-score de validação: ", sum(f1_score_history) / len(f1_score_history))
-        print("IoU de validação: ", sum(iou_score_history) / len(iou_score_history))
+        print("Validation F1-score: ", sum(f1_score_history) / len(f1_score_history))
+        print("Validation IoU: ", sum(iou_score_history) / len(iou_score_history))
         print(
-            "Recall de validação: ",
-            sum(recall_history_validation) / len(recall_history_validation),
+            "Validation recall: ",
+            sum(recall_validation_history) / len(recall_validation_history),
         )
-        # print(
-        #    "Matriz de Confusão validação: ",
-        #    sum(confusion_matrix_history_validation)
-        #    / len(confusion_matrix_history_validation),
-        # )
-        scheduler.step()
 
-        # Early stopping
-        if val_loss_history[-1] < best_val_loss:
-            best_val_loss = val_loss_history[-1]
+        validation_loss_final = sum(loss_epoch_validation_history) / len(
+            loss_epoch_validation_history
+        )
+
+        scheduler.step(validation_loss_final)
+
+        if loss_epoch_validation_history[-1] < best_val_loss:
+            best_val_loss = loss_epoch_validation_history[-1]
             patience_counter = 0
             torch.save(
                 {
@@ -253,7 +259,7 @@ def train(
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": loss_func,
                 },
-                path_model,
+                model_save_path,
             )
         else:
             patience_counter += 1
@@ -261,24 +267,21 @@ def train(
                 print("Early stopping triggered")
                 break
 
-        scheduler.step()
+        scheduler.step(best_val_loss)
 
     tn_values = []
     fp_values = []
     fn_values = []
     tp_values = []
 
-    # Iterar sobre a lista de matrizes de confusão e extrair os valores
-    for cm in confusion_matrix_epoch_history_training:
-        tn, fp, fn, tp = cm.ravel()  # Desembrulha os valores da matriz de confusão
-        # print(tn)
+    for cm in confusion_matrix_epoch_training_history:
+        tn, fp, fn, tp = cm.ravel()
         tn_values.append(tn)
         fp_values.append(fp)
         fn_values.append(fn)
         tp_values.append(tp)
 
-    # Criando o gráfico de linha
-    epochs = range(1, len(confusion_matrix_epoch_history_training) + 1)
+    epochs = range(1, len(confusion_matrix_epoch_training_history) + 1)
 
     plt.figure(figsize=(10, 6))
     plt.plot(epochs, tn_values, label="True Negatives (TN)", marker="o")
@@ -298,17 +301,14 @@ def train(
     fn_values = []
     tp_values = []
 
-    # Iterar sobre a lista de matrizes de confusão e extrair os valores
-    for cm in confusion_matrix_epoch_history_validation:
-        tn, fp, fn, tp = cm.ravel()  # Desembrulha os valores da matriz de confusão
-        # print(tn)
+    for cm in confusion_matrix_epoch_validation_history:
+        tn, fp, fn, tp = cm.ravel()
         tn_values.append(tn)
         fp_values.append(fp)
         fn_values.append(fn)
         tp_values.append(tp)
 
-    # Criando o gráfico de linha
-    epochs = range(1, len(confusion_matrix_epoch_history_validation) + 1)
+    epochs = range(1, len(confusion_matrix_epoch_validation_history) + 1)
 
     plt.figure(figsize=(10, 6))
     plt.plot(epochs, tn_values, label="True Negatives (TN)", marker="o")
@@ -323,16 +323,16 @@ def train(
     plt.grid(True)
     plt.show()
 
-    confusion_mastrix_val = sum(confusion_matrix_history_validation) / len(
-        confusion_matrix_history_validation
+    confusion_matrix_val = sum(confusion_matrix_epoch_validation_history) / len(
+        confusion_matrix_epoch_validation_history
     )
-    confusion_mastrix_train = sum(confusion_matrix_history_training) / len(
-        confusion_matrix_history_training
+    confusion_matrix_train = sum(confusion_matrix_epoch_training_history) / len(
+        confusion_matrix_epoch_training_history
     )
 
     plt.figure(figsize=(8, 6))
     sns.heatmap(
-        confusion_mastrix_val,
+        confusion_matrix_val,
         annot=True,
         fmt=".2f",
         cmap="Blues",
@@ -347,7 +347,7 @@ def train(
 
     plt.figure(figsize=(8, 6))
     sns.heatmap(
-        confusion_mastrix_train,
+        confusion_matrix_train,
         annot=True,
         fmt=".2f",
         cmap="Blues",
@@ -360,15 +360,16 @@ def train(
     plt.ylabel("Classe Real")
     plt.show()
 
-    # Plot learning curves
-    fig, axes = plt.subplots(
-        3, 2, figsize=(12, 9)
-    )  # Ajuste o tamanho conforme necessário
+    fig, axes = plt.subplots(3, 2, figsize=(12, 9))
 
-    # Loss (Perda)
-    axes[0, 1].plot(train_loss_history, label="Train Loss", linestyle="--", marker="o")
     axes[0, 1].plot(
-        val_loss_history, label="Validation Loss", linestyle="--", marker="o"
+        loss_epoch_training_history, label="Train Loss", linestyle="--", marker="o"
+    )
+    axes[0, 1].plot(
+        loss_epoch_validation_history,
+        label="Validation Loss",
+        linestyle="--",
+        marker="o",
     )
     axes[0, 1].set_xlabel("Epoch")
     axes[0, 1].set_ylabel("Loss")
@@ -376,12 +377,17 @@ def train(
     axes[0, 1].legend()
     axes[0, 1].grid()
 
-    # Accuracy (Acurácia)
     axes[0, 0].plot(
-        train_accuracy_history, label="Train Accuracy", linestyle="--", marker="o"
+        accuracy_epoch_training_history,
+        label="Train Accuracy",
+        linestyle="--",
+        marker="o",
     )
     axes[0, 0].plot(
-        val_accuracy_history, label="Validation Accuracy", linestyle="--", marker="o"
+        accuracy_epoch_validation_history,
+        label="Validation Accuracy",
+        linestyle="--",
+        marker="o",
     )
     axes[0, 0].set_xlabel("Epoch")
     axes[0, 0].set_ylabel("Accuracy")
@@ -389,31 +395,31 @@ def train(
     axes[0, 0].legend()
     axes[0, 0].grid()
 
-    # F1 Score
     axes[1, 0].plot(
-        f1_epoch_history_validation,
+        f1_epoch_training_history, label="Training F1 Score", linestyle="--", marker="o"
+    )
+    axes[1, 0].plot(
+        f1_epoch_validation_history,
         label="Validation F1 Score",
         linestyle="--",
         marker="o",
     )
-    axes[1, 0].plot(
-        f1_epoch_history_training, label="Training F1 Score", linestyle="--", marker="o"
-    )
+
     axes[1, 0].set_xlabel("Epoch")
     axes[1, 0].set_ylabel("Score")
     axes[1, 0].legend()
     axes[1, 0].grid()
 
-    # IOU Score
     axes[1, 1].plot(
-        iou_epoch_history_validation,
-        label="Validation IOU Score",
+        iou_epoch_training_history,
+        label="Training IOU Score",
         linestyle="--",
         marker="o",
     )
+
     axes[1, 1].plot(
-        iou_epoch_history_training,
-        label="Training IOU Score",
+        iou_epoch_validation_history,
+        label="Validation IOU Score",
         linestyle="--",
         marker="o",
     )
@@ -422,19 +428,20 @@ def train(
     axes[1, 1].legend()
     axes[1, 1].grid()
 
-    # Recall
     axes[2, 0].plot(
-        recall_epoch_history_validation,
-        label="Validation Recall",
-        linestyle="--",
-        marker="o",
-    )
-    axes[2, 0].plot(
-        recall_epoch_history_training,
+        recall_epoch_training_history,
         label="Training Recall",
         linestyle="--",
         marker="o",
     )
+
+    axes[2, 0].plot(
+        recall_epoch_validation_history,
+        label="Validation Recall",
+        linestyle="--",
+        marker="o",
+    )
+
     axes[2, 0].set_xlabel("Epoch")
     axes[2, 0].set_ylabel("Score")
     axes[2, 0].legend()
@@ -445,9 +452,11 @@ def train(
     plt.tight_layout()
     plt.show()
 
-    k_acc = sum(val_accuracy_history) / len(val_accuracy_history)
-    K_f1 = sum(f1_epoch_history_validation) / len(f1_epoch_history_validation)
-    k_iou = sum(iou_epoch_history_validation) / len(iou_epoch_history_validation)
-    k_recall = sum(recall_history_validation) / len(recall_history_validation)
+    final_accuracy = sum(accuracy_epoch_validation_history) / len(
+        accuracy_epoch_validation_history
+    )
+    final_f1_score = sum(f1_epoch_validation_history) / len(f1_epoch_validation_history)
+    final_iou = sum(iou_epoch_validation_history) / len(iou_epoch_validation_history)
+    final_recall = sum(recall_validation_history) / len(recall_validation_history)
 
-    return k_acc, K_f1, k_iou, k_recall
+    return final_accuracy, final_f1_score, final_iou, final_recall
